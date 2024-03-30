@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Button, StyleSheet, Text, View, Animated, PanResponder, TouchableOpacity } from 'react-native';
+import { ImageBackground, StyleSheet, Text, View, Animated, PanResponder, TouchableOpacity } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import Face from '../app/face';
 
@@ -13,14 +13,15 @@ const HUNGER_INCREMENT = 10;
 const THIRST_INCREMENT = 10;
 const ENERGY_DECREMENT = 5;
 const PLAY_ENERGY_CONSUMPTION = 20;
-const REST_ENERGY_RECOVERY = 20;
+//const REST_ENERGY_RECOVERY = 20;
 
 export default function App() {
     const [currentFace, setCurrentFace] = useState(4);
     const [hunger, setHunger] = useState(MAX_LEVEL / 2);
     const [energy, setEnergy] = useState(MAX_LEVEL / 2);
     const [thirst, setThirst] = useState(MAX_LEVEL / 2);
-    const [timerInterval, setTimerInterval] = useState(1000); // Initial timer interval
+    const [timerInterval, setTimerInterval] = useState(10000); // Initial timer interval
+    const [isSleeping, setIsSleeping] = useState(false); // Track if the pet is sleeping
 
     // Create table if not exists
     useEffect(() => {
@@ -59,6 +60,7 @@ export default function App() {
 
     // Function to update the face based on stats
     useEffect(() => {
+        if (isSleeping) return;
         let faceIndex = 4; // Default happy face
 
         // Check overall well-being and adjust the face accordingly
@@ -89,8 +91,7 @@ export default function App() {
         }
 
         setCurrentFace(faceIndex);
-    }, [hunger, thirst, energy]);
-
+    }, [hunger, thirst, energy, isSleeping]);
 
     // Function to decrease hunger, thirst, and energy over time
     useEffect(() => {
@@ -102,10 +103,30 @@ export default function App() {
         return () => clearTimeout(timer);
     }, [hunger, thirst, energy, timerInterval]); // Include timerInterval in dependencies
 
+    // Effect to handle energy increase when the pet is sleeping
+    useEffect(() => {
+        if (isSleeping && energy < MAX_LEVEL) {
+            const interval = setInterval(() => {
+                setEnergy((prevEnergy) => Math.min(MAX_LEVEL, prevEnergy + 1)); // Increase energy level
+            }, 1000); // Increase energy every second
+            return () => clearInterval(interval); // Cleanup function to clear the interval
+        }
+    }, [isSleeping, energy]);
+
+    // Function to make the pet sleep and increase energy levels
+    const makePetSleep = () => {
+        setIsSleeping(true); // Set sleeping state to true
+        setCurrentFace(6); // Change the face to the sleepy face
+    };
+
+    const wakeUpPet = () => {
+        setIsSleeping(false); // Set sleeping state to false
+        setCurrentFace(4); // Change the face back to the default face according to stats
+    };
 
     const feedPet = () => {
-        if (hunger > MIN_LEVEL) {
-            setHunger((hunger) => Math.max(MIN_LEVEL, hunger - HUNGER_INCREMENT));
+        if (!isSleeping && hunger > MIN_LEVEL) {
+            setHunger((prevHunger) => Math.max(MIN_LEVEL, prevHunger - HUNGER_INCREMENT));
         }
     };
 
@@ -116,18 +137,15 @@ export default function App() {
     };
 
     const giveWater = () => {
-        if (thirst > MIN_LEVEL) {
-            setThirst((thirst) => Math.max(MIN_LEVEL, thirst - THIRST_INCREMENT));
+        if (!isSleeping && thirst > MIN_LEVEL) {
+            setThirst((prevThirst) => Math.max(MIN_LEVEL, prevThirst - THIRST_INCREMENT));
         }
     };
 
-    const restPet = () => {
-        if (energy < MAX_LEVEL) {
-            setEnergy((energy) => Math.min(MAX_LEVEL, energy + REST_ENERGY_RECOVERY));
-        }
-    };
+    const [boxPosition, setBoxPosition] = useState({ x: 0, y: 0 });
 
     const handleFeed = () => {
+
         // Calculate the coordinates of the pet image
         const petImageX = 50; // Adjust these values based on the position and size of your pet image
         const petImageY = 10;
@@ -147,17 +165,19 @@ export default function App() {
             boxY + boxHeight >= petImageY &&
             boxY <= petImageY + petImageHeight
         ) {
-            // If the box overlaps with the pet image, trigger feed action
+                // If the box overlaps with the pet image and the pet is awake, trigger feed action
             feedPet();
         }
     };
 
-    const [boxPosition, setBoxPosition] = useState({ x: 0, y: 0 });
-    const pan = useRef(new Animated.ValueXY()).current;
-    const panResponder = useRef(
+    const panFood = useRef(new Animated.ValueXY()).current; // Red box
+    const panWater = useRef(new Animated.ValueXY()).current; // Blue box
+    const panPlay = useRef(new Animated.ValueXY()).current; // Blue box
+
+    const petFood = useRef(
         PanResponder.create({
             onStartShouldSetPanResponder: () => true,
-            onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+            onPanResponderMove: Animated.event([null, { dx: panFood.x, dy: panFood.y }], { useNativeDriver: false }),
             onPanResponderRelease: (evt, gestureState) => {
                 const { moveX, moveY } = gestureState;
                 if (moveX > 100 && moveX < 300 && moveY > 200 && moveY < 400) {
@@ -165,7 +185,47 @@ export default function App() {
                     handleFeed();
                 }
                 // Reset box position
-                Animated.spring(pan, {
+                Animated.spring(panFood, {
+                    toValue: { x: 0, y: 0 },
+                    useNativeDriver: false,
+                }).start();
+                setBoxPosition({ x: 0, y: 0 });
+            },
+        }),
+    ).current;
+
+    const petWater = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onPanResponderMove: Animated.event([null, { dx: panWater.x, dy: panWater.y }], { useNativeDriver: false }),
+            onPanResponderRelease: (evt, gestureState) => {
+                const { moveX, moveY } = gestureState;
+                if (moveX > 100 && moveX < 300 && moveY > 200 && moveY < 400) {
+                    // If box is dropped within the pet area, trigger feed action
+                    giveWater();
+                }
+                // Reset box position
+                Animated.spring(panWater, {
+                    toValue: { x: 0, y: 0 },
+                    useNativeDriver: false,
+                }).start();
+                setBoxPosition({ x: 0, y: 0 });
+            },
+        }),
+    ).current;
+
+    const petPlay = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onPanResponderMove: Animated.event([null, { dx: panPlay.x, dy: panPlay.y }], { useNativeDriver: false }),
+            onPanResponderRelease: (evt, gestureState) => {
+                const { moveX, moveY } = gestureState;
+                if (moveX > 100 && moveX < 300 && moveY > 200 && moveY < 400) {
+                    // If box is dropped within the pet area, trigger feed action
+                    playWithPet();
+                }
+                // Reset box position
+                Animated.spring(panPlay, {
                     toValue: { x: 0, y: 0 },
                     useNativeDriver: false,
                 }).start();
@@ -176,26 +236,36 @@ export default function App() {
 
     return (
         <View style={styles.container}>
-      {/*      <Text>This is my Tamagotchi Pet</Text>*/}
+            <TouchableOpacity onPress={isSleeping ? wakeUpPet : makePetSleep}>
             <Face whichFace={currentFace} />
+            </TouchableOpacity>
             <Text>Hunger Level: {hunger}</Text>
             <Text>Thirst Level: {thirst}</Text>
             <Text>Energy Level: {energy}</Text>
-            <View style={styles.buttonContainer}>
-                <Button title="Give Water" onPress={giveWater} />
-                <Button title="Rest" onPress={restPet} />
-                <Button title="Play" onPress={playWithPet} />
-            </View>
             <View style={styles.boxContainer}>
+                {!isSleeping && ( // Render the boxes only if the pet is not sleeping
+                    <>
+                        <ImageBackground style={styles.food}>
+                            <Animated.View 
+                                style={[
+                                styles.food,
+                                {transform: [{ translateX: panFood.x }, { translateY: panFood.y }],}, ]}
+                                {...petFood.panHandlers} // Changed to use petFood panResponder
+                           />
+                        </ImageBackground>
                 <Animated.View
+                            style={[ styles.water,
+                                {transform: [{ translateX: panWater.x }, { translateY: panWater.y }],}, ]}
+                            {...petWater.panHandlers} // Changed to use petWater panResponder
+                        />
+                        <Animated.View
                     style={[
-                        styles.box,
-                        {
-                            transform: [{ translateX: pan.x }, { translateY: pan.y }],
-                        },
-                    ]}
-                    {...panResponder.panHandlers}
+                                styles.play,
+                                {transform: [{ translateX: panPlay.x }, { translateY: panPlay.y }],},]}
+                            {...petPlay.panHandlers} // Changed to use petWater panResponder
                 />
+                    </>
+                )}
             </View>
             <StatusBar style="auto" />
         </View>
@@ -216,14 +286,24 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     boxContainer: {
-        position: 'absolute',
-        top: 50, // Adjust the top position as needed
-        left: '50%',
-        marginLeft: -25, // Adjust the margin to center the box horizontally
+        flexDirection: 'row',
     },
-    box: {
+    food: {
         width: 50,
         height: 50,
-        backgroundColor: 'red',
+        margin: 15,
+        resizeMode: 'cover',
+        backgroundImage: require('../assets/Play.png'),
+    },
+    water: {
+        width: 50,
+        height: 50,
+        margin: 15,
+    },
+    play: {
+        width: 50,
+        height: 50,
+        margin: 15,
+        backgroundImage: require('../assets/Food.png'),
     },
 });
