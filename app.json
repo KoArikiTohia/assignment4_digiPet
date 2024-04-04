@@ -2,9 +2,9 @@
   "expo": {
     "name": "assignment4_DigiPet",
     "slug": "assignment4_DigiPet",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon2.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -15,13 +15,17 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ca.stefan.digipet",
+      "buildNumber": "1.0.1"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon2.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "ca.stefa.digipet",
+      "versionCode": 10001
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,7 +33,14 @@
     "plugins": [
       "expo-router"
     ],
-
-    "scheme": "router-demo"
+    "scheme": "router-demo",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4f8b50df-c97d-411e-ab54-323d9bfbcc49"
+      }
+    }
   }
 }

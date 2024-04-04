@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
         height: 50,
         margin: 15,
         resizeMode: 'cover',
-        backgroundImage: require('../assets/Play.png'),
+        //backgroundImage: require('../assets/Play.png'),
     },
     water: {
         width: 50,
@@ -304,6 +304,6 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
         margin: 15,
-        backgroundImage: require('../assets/Food.png'),
+        //backgroundImage: require('../assets/Food.png'),
     },
 });
