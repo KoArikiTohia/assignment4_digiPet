@@ -7,9 +7,9 @@
     "icon": "./assets/icon2.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash_new.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#7ed957"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -17,14 +17,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ca.stefan.digipet",
-      "buildNumber": "1.0.1"
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon2.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "ca.stefa.digipet",
+      "package": "ca.stefan.digipet",
       "versionCode": 10001
     },
     "web": {

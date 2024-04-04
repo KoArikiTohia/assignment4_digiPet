@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { ImageBackground, StyleSheet, Text, View, Animated, PanResponder, TouchableOpacity } from 'react-native';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { StatusBar, Modal, StyleSheet, Text, View, Animated, PanResponder, TouchableOpacity, Button } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import Face from '../app/face';
 
@@ -13,15 +12,15 @@ const HUNGER_INCREMENT = 10;
 const THIRST_INCREMENT = 10;
 const ENERGY_DECREMENT = 5;
 const PLAY_ENERGY_CONSUMPTION = 20;
-//const REST_ENERGY_RECOVERY = 20;
 
 export default function App() {
     const [currentFace, setCurrentFace] = useState(4);
     const [hunger, setHunger] = useState(MAX_LEVEL / 2);
     const [energy, setEnergy] = useState(MAX_LEVEL / 2);
     const [thirst, setThirst] = useState(MAX_LEVEL / 2);
-    const [timerInterval, setTimerInterval] = useState(10000); // Initial timer interval
+    const [timerInterval, setTimerInterval] = useState(1500000); // Initial timer interval
     const [isSleeping, setIsSleeping] = useState(false); // Track if the pet is sleeping
+    const [modalVisible, setModalVisible] = useState(false); // State for instructions modal
 
     // Create table if not exists
     useEffect(() => {
@@ -165,7 +164,7 @@ export default function App() {
             boxY + boxHeight >= petImageY &&
             boxY <= petImageY + petImageHeight
         ) {
-                // If the box overlaps with the pet image and the pet is awake, trigger feed action
+            // If the box overlaps with the pet image and the pet is awake, trigger feed action
             feedPet();
         }
     };
@@ -237,33 +236,58 @@ export default function App() {
     return (
         <View style={styles.container}>
             <TouchableOpacity onPress={isSleeping ? wakeUpPet : makePetSleep}>
-            <Face whichFace={currentFace} />
+                <Face whichFace={currentFace} />
             </TouchableOpacity>
             <Text>Hunger Level: {hunger}</Text>
             <Text>Thirst Level: {thirst}</Text>
             <Text>Energy Level: {energy}</Text>
+            <View style={styles.buttonContainer}>
+                <Button title="Instructions" onPress={() => setModalVisible(true)} />
+            </View>
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                    setModalVisible(!modalVisible);
+                }}
+            >
+                <View style={styles.centeredView}>
+
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>Instructions:</Text>
+                        <Text style={styles.modalText}>1. Feed your pet by dragging the food to the pet.</Text>
+                        <Text style={styles.modalText}>2. Give water to your pet by dragging the water to the pet.</Text>
+                        <Text style={styles.modalText}>3. Play with your pet by dragging the ball to the pet.</Text>
+                        <Text style={styles.modalText}>4. Click on your pet to put it to sleep so it can get energy.</Text>
+                        <Button title="Close" onPress={() => setModalVisible(false)} />
+
+                    </View>
+                </View>
+            </Modal>
             <View style={styles.boxContainer}>
                 {!isSleeping && ( // Render the boxes only if the pet is not sleeping
                     <>
-                        <ImageBackground style={styles.food}>
-                            <Animated.View 
-                                style={[
-                                styles.food,
-                                {transform: [{ translateX: panFood.x }, { translateY: panFood.y }],}, ]}
-                                {...petFood.panHandlers} // Changed to use petFood panResponder
-                           />
-                        </ImageBackground>
-                <Animated.View
-                            style={[ styles.water,
-                                {transform: [{ translateX: panWater.x }, { translateY: panWater.y }],}, ]}
+                        <Animated.Image
+                            source={require('../assets/Food.png')}
+                            style={[styles.food,
+                            { transform: [{ translateX: panFood.x }, { translateY: panFood.y }], },]}
+                            {...petFood.panHandlers} // Changed to use petFood panResponder
+                        />
+
+                        <Animated.Image
+                            source={require('../assets/Water.png')}
+                            style={[styles.water,
+                            { transform: [{ translateX: panWater.x }, { translateY: panWater.y }], },]}
                             {...petWater.panHandlers} // Changed to use petWater panResponder
                         />
-                        <Animated.View
-                    style={[
+                        <Animated.Image
+                            source={require('../assets/Play.png')}
+                            style={[
                                 styles.play,
-                                {transform: [{ translateX: panPlay.x }, { translateY: panPlay.y }],},]}
+                                { transform: [{ translateX: panPlay.x }, { translateY: panPlay.y }], },]}
                             {...petPlay.panHandlers} // Changed to use petWater panResponder
-                />
+                        />
                     </>
                 )}
             </View>
@@ -275,35 +299,47 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#7ed957'
     },
     buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '50%',
-        marginTop: 20,
+        position: 'absolute',
+        bottom: 10,
+        marginBottom: 50,
     },
     boxContainer: {
         flexDirection: 'row',
     },
     food: {
-        width: 50,
-        height: 50,
-        margin: 15,
-        resizeMode: 'cover',
-        //backgroundImage: require('../assets/Play.png'),
+        width: 150,
+        height: 150,
     },
     water: {
-        width: 50,
-        height: 50,
-        margin: 15,
+        width: 150,
+        height: 150,
     },
     play: {
-        width: 50,
-        height: 50,
-        margin: 15,
-        //backgroundImage: require('../assets/Food.png'),
+        width: 150,
+        height: 150,
+    },
+    modalView: {
+        margin: 20,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 35,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    modalText: {
+        marginBottom: 10,
+        fontSize: 16,
     },
 });

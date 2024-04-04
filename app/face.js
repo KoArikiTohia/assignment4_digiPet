@@ -16,7 +16,6 @@ const faces = [
     sadFace,
     deadFace,
     sleepyFace,
-
 ]
 
 export default function Face(props) {
